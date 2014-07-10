@@ -2,7 +2,8 @@
 # $FreeBSD: head/multimedia/webcamd/files/webcamd.in 353901 2014-05-12 22:01:10Z nox $
 #
 # PROVIDE: webcamd
-# REQUIRE: DAEMON
+# REQUIRE: DAEMON LOGIN
+# KEYWORD: shutdown
 #
 # Add the following line to /etc/rc.conf[.local] to enable webcamd:
 #
@@ -28,11 +29,10 @@
 . /etc/rc.subr
 
 name=webcamd
-rcvar=${name}_enable
+rcvar=webcamd_enable
 load_rc_config $name
 
-: ${webcamd_enable=NO}
-: ${hald_enable=NO}
+: ${webcamd_enable:=NO}
 
 : ${webcamd_user=webcamd}
 : ${webcamd_group=webcamd}
