@@ -33,6 +33,7 @@ rcvar=webcamd_enable
 load_rc_config $name
 
 : ${webcamd_enable:=NO}
+: ${hald_enable:=NO}
 
 : ${webcamd_user=webcamd}
 : ${webcamd_group=webcamd}
