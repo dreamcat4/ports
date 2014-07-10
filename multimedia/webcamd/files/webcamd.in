@@ -7,39 +7,158 @@
 # Add the following line to /etc/rc.conf[.local] to enable webcamd:
 #
 # webcamd_enable="YES"
+# webcamd_devices=<list of USB devices for webcamd to attach to seperated by commas and/or spaces>
 #
-# Optional:
-# webcamd_flags="-m v4l2-dev.vflip=1"
-# webcamd_flags="-m v4l2-dev.hflip=1"
+# Advanced settings, better to leave alone:
 #
-
-webcamd_enable=${webcamd_enable-"NO"}
-hald_enable=${hald_enable-"NO"}
+# webcamd_user=<the user to run webcamd as>
+# webcamd_group=<the group to run webcamd as>
+# webcamd_startup_delay=<number of seconds to wait for webcamd to start before launching the next instance of webcamd>
+# webcamd_flags=<set additional global webcamd flags, applied on all instances>
+# webcamd_instance_{0,1,2,3}_flags=<set specific webcamd flag on additional instances, which are not started from setting $webcamd_devices>
+#
+# Examples:
+# sysrc webcamd_enable=YES
+# sysrc "webcamd_devices=ugen2.2, 7.3"
+#
+# sysrc "webcamd_instance_0_flags=-L 127.0.0.1:5100:-1"
+# sysrc "webcamd_instance_1_flags=-d ugen7.4 -i 1 -m v4l2-dev.hflip=1"
+#
 
 . /etc/rc.subr
 
 name=webcamd
-rcvar=webcamd_enable
-iface=${3-0}
+rcvar=${name}_enable
+load_rc_config $name
+
+: ${webcamd_enable=NO}
+: ${hald_enable=NO}
+
+: ${webcamd_user=webcamd}
+: ${webcamd_group=webcamd}
+: ${webcamd_startup_delay=1}
+
 command=%%PREFIX%%/sbin/webcamd
-command_args="-B -U webcamd -G webcamd"
+command_args="-B -U ${webcamd_user} -G ${webcamd_group}"
 
-start_precmd="${name}_prestart"
+start_cmd="${name}_start"
+stop_cmd="${name}_stop"
+status_cmd="${name}_status"
 
-webcamd_prestart()
+webcamd_pids()
 {
+  pids=$(pgrep -d ' ' $name)
+  pids=${pids% }
+  printf "${pids}"
+}
+
+webcamd_start()
+{
+  pids=$(webcamd_pids)
+
+  if [ "$pids" ]; then
+    echo "${name} already running?  (pid=${pids})."
+    return 1
+  fi
+
   if checkyesno hald_enable ; then
-	command_args="$command_args -H"
+    command_args="$command_args -H"
+  fi
+
+  # Check that necessary webcamd_ variables have been configured
+  if [ ! "$webcamd_devices" ] && [ ! "$webcamd_instance_0_flags" ]; then
+    warn "failed to start ${name}."
+    echo "webcamd settings need to be configured in /etc/rc.conf."
+    echo "See %%PREFIX%%/etc/rc.d/${name} for more info."
+    return 1
+  fi
+
+  echo "Starting ${name}."
+
+  webcamd_devices=$(echo "$webcamd_devices" | tr -s ',' ' ')
+  num_instances_remaining=$(echo "$webcamd_devices" | wc -w | grep -o -E "[0-9]+")
+
+  n=0
+  while [ "$n" -lt "100" ]
+  do
+    if [ "$(eval "echo \$webcamd_instance_${n}_flags")" ]; then
+      n=$(expr $n + 1)
+    else
+      break
+    fi
+  done
+  num_instances_remaining=$(expr $num_instances_remaining + $n)
+
+  # webcamd_devices
+  for device in $webcamd_devices
+  do
+    # Launch an instance of webcamd for this device
+    ${command} ${command_args} ${webcamd_flags} -d ${device}
+    num_instances_remaining=$(expr $num_instances_remaining - 1)
+
+    # Wait n seconds until launching the next instance for the next device
+    if [ "$num_instances_remaining" -gt 0 ]; then
+      sleep $webcamd_startup_delay
+    fi
+  done
+
+  # additional instances
+  n=0
+  while [ "$n" -lt "100" ]
+  do
+    instance_flags=$(eval "echo \$webcamd_instance_${n}_flags")
+
+    if [ "$instance_flags" ]; then
+
+      if [ "$(echo "$instance_flags" | grep -o "\-U \|\-G ")" ]; then
+        # Don't override user and group with the global value if they were explicitly set
+        ${command} -B ${webcamd_flags} ${instance_flags}
+      else
+        # Launch an instance of webcamd with these specific instance flags
+        ${command} ${command_args} ${webcamd_flags} ${instance_flags}
+      fi
+
+      num_instances_remaining=$(expr $num_instances_remaining - 1)
+      n=$(expr $n + 1)
+
+      if [ "$num_instances_remaining" -gt 0 ]; then
+        sleep $webcamd_startup_delay
+      fi
+    else
+      break
+    fi
+  done
+}
+
+webcamd_stop()
+{
+  pids=$(webcamd_pids)
+  if [ "${pids}" ]; then
+    echo "Stopping ${name}."
+    echo "Waiting for PIDs: ${pids}"
+    for signal in TERM INT QUIT KILL HUP
+    do
+      kill -s ${signal} ${pids}
+      sleep 1;
+      pids=$(webcamd_pids)
+      [ "${pids}" ] || break;
+    done
+  else
+    echo "${name} is not running."
+    return 1
   fi
 }
 
-pidfile="/var/run/webcamd.*.$iface.pid"
+webcamd_status()
+{
+  pids=$(webcamd_pids)
 
-load_rc_config $name
+  if [ "${pids}" ]; then
+    echo "${name} is running as pid ${pids}."
+  else
+    echo "${name} is not running."
+    return 1
+  fi
+}
 
-if [ $# -gt 1 ]; then
-	pidfile="webcamd.dummy"
-	command_args="$command_args -d $2 -i $iface"
-	# Only run the rc command if the appropriate arguments are specified:	
-	run_rc_command $1
-fi
+run_rc_command "$1"
