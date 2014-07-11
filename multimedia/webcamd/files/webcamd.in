@@ -5,25 +5,42 @@
 # REQUIRE: DAEMON LOGIN
 # KEYWORD: shutdown
 #
-# Add the following line to /etc/rc.conf[.local] to enable webcamd:
+# It is recommended to configure webcamd in the following way:
 #
 # webcamd_enable="YES"
-# webcamd_devices=<list of USB devices for webcamd to attach to seperated by commas and/or spaces>
+# webcamd_devices_0_name=<put here the single product name of your USB devices, as printed in the 2nd column of 'usbconfig' command. Do not repeat it.>
+# webcamd_devices_{1,2,3...99}_name=<put in seperate variables the name of 2nd, 3rd *types* of connected USB device. Only if you have a mixture of different model types>
 #
-# Advanced settings, better to leave alone:
+# Advanced settings:
 #
+# webcamd_startup_delay=<if multiple devices, the number of seconds to wait before launching the next instance of webcamd>
 # webcamd_user=<the user to run webcamd as>
 # webcamd_group=<the group to run webcamd as>
-# webcamd_startup_delay=<number of seconds to wait for webcamd to start before launching the next instance of webcamd>
 # webcamd_flags=<set additional global webcamd flags, applied on all instances>
-# webcamd_instance_{0,1,2,3}_flags=<set specific webcamd flag on additional instances, which are not started from setting $webcamd_devices>
+#
+# 2 other ways:
+#
+# webcamd_devices=<a list of USB device numbers, such as 'ugen2.2' for webcamd to attach to>
+# webcamd_instance_{0,1,2,3}_flags=<to set manually each individual spawned instances, put here it's webcamd flags>
+#
+# You may use any of 3 ways in combination. Pick the right tool for right job.
+# However do not use more than one method for each physical device.
 #
 # Examples:
 # sysrc webcamd_enable=YES
+# sysrc webcamd_startup_delay=2
+#
+# Method 1:
+# sysrc "webcamd_devices_0_name=Acer Crystal Eye webcam SuYin"
+# sysrc "webcamd_devices_1_name=SCEH-0036 SONY"
+#
+# Method 2:
 # sysrc "webcamd_devices=ugen2.2, 7.3"
 #
+# Method 3:
+# sysrc webcamd_startup_delay=0
 # sysrc "webcamd_instance_0_flags=-L 127.0.0.1:5100:-1"
-# sysrc "webcamd_instance_1_flags=-d ugen7.4 -i 1 -m v4l2-dev.hflip=1"
+# sysrc "webcamd_instance_1_flags=-d ugen7.4 -v 2 -i 1 -m v4l2-dev.hflip=1"
 #
 
 . /etc/rc.subr
@@ -66,17 +83,32 @@ webcamd_start()
     command_args="$command_args -H"
   fi
 
-  # Check that necessary webcamd_ variables have been configured
-  if [ ! "$webcamd_devices" ] && [ ! "$webcamd_instance_0_flags" ]; then
-    warn "failed to start ${name}."
-    echo "webcamd settings need to be configured in /etc/rc.conf."
-    echo "See %%PREFIX%%/etc/rc.d/${name} for more info."
-    return 1
+  # webcamd_devices_N_name
+  if [ "$webcamd_devices_0_name" ]; then
+    usbconfig=$(usbconfig)
+
+    n=0
+    while [ "$n" -lt "100" ]
+    do
+      devices_name=$(eval "echo \$webcamd_devices_${n}_name")
+
+      if [ "$devices_name" ]; then
+        device_names="$device_names, $devices_name"
+
+        found_devices=$(echo "$usbconfig" | grep "$devices_name" | cut -d ':' -f 1)
+        if [ "$found_devices" ]; then
+          autodetected_devices="$autodetected_devices $found_devices"
+        fi
+
+        n=$(expr $n + 1)
+      else
+        break
+      fi
+    done
   fi
 
-  echo "Starting ${name}."
-
-  webcamd_devices=$(echo "$webcamd_devices" | tr -s ',' ' ')
+  webcamd_devices="$autodetected_devices $webcamd_devices"
+  webcamd_devices=$(echo "${webcamd_devices# }" | tr -s ',' ' ')
   num_instances_remaining=$(echo "$webcamd_devices" | wc -w | grep -o -E "[0-9]+")
 
   n=0
@@ -89,6 +121,22 @@ webcamd_start()
     fi
   done
   num_instances_remaining=$(expr $num_instances_remaining + $n)
+
+  # Check that necessary webcamd_ variables have been configured
+  if [ ! "$webcamd_devices" ] && [ ! "$webcamd_instance_0_flags" ]; then
+    if [ ! "$webcamd_devices_0_name" ]; then
+      warn "failed to start ${name}."
+      echo "webcamd settings need to be configured in /etc/rc.conf."
+      echo "See %%PREFIX%%/etc/rc.d/${name} for more info."
+      return 1
+    else
+      warn "failed to start ${name}."
+      echo "No connected devices found of type: ${device_names#, }."
+      return 1
+    fi
+  fi
+
+  echo "Starting ${name}."
 
   # webcamd_devices
   for device in $webcamd_devices
@@ -129,6 +177,24 @@ webcamd_start()
       break
     fi
   done
+
+  # Check that at least 1+ webcamd processes are persistent
+  if [ "$webcamd_startup_delay" -gt 0 ]; then
+    # but not if doing "fast-start". When webcamd_startup_delay = 0 seconds
+    sleep 1
+    pids=$(webcamd_pids)
+    if [ "${pids}" ]; then
+      echo "${name} is running as pid ${pids}."
+    else
+      if [ "$webcamd_devices" ]; then
+        warn "webcamd not started."
+        warn "Invalid configuration or USB devices not recognized: ${webcamd_devices% }."
+      else
+        warn "webcamd not started. Invalid configuration?"
+      fi
+      return 1
+    fi
+  fi
 }
 
 webcamd_stop()
