@@ -31,7 +31,7 @@ name=universal_media_server
 rcvar=universal_media_server_enable
 load_rc_config $name
 
-: ${universal_media_server_enable=NO}
+: ${universal_media_server_enable:=NO}
 
 # Optional settings
 : ${universal_media_server_user=ums}
@@ -70,6 +70,7 @@ universal_media_server_prestart()
 
 universal_media_server_poststart()
 {
+  # Find running UMS processes
   echo "$(pgrep -n -f "java.*${universal_media_server_classpath}.*${universal_media_server_java_class}")" > ${pidfile}
 }
 
