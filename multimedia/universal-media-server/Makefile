@@ -1,8 +1,8 @@
 # Created by: Dreamcat4 <dreamcat4@gmail.com>
-# $FreeBSD$
+# $FreeBSD: head/multimedia/universal-media-server/Makefile 361621 2014-07-12 15:22:00Z pi $
 
 PORTNAME=	universal-media-server
-DISTVERSION=	4.0.0-a1
+DISTVERSION=	4.0.0-b1
 CATEGORIES=	multimedia
 MASTER_SITES=	SF/unimediaserver/Official%20Releases/Linux
 DISTFILES=	UMS-${DISTVERSION}.tgz
@@ -18,7 +18,7 @@ JAVA_VENDOR=	openjdk
 JAVA_RUN=	true
 
 OPTIONS_DEFINE=		MEDIAINFO FLAC DCRAW TSMUXER FFMPEG MPLAYER VLC MENCODER
-OPTIONS_DEFAULT=	MEDIAINFO FLAC DCRAW TSMUXER
+OPTIONS_DEFAULT=	MEDIAINFO FLAC DCRAW
 
 MEDIAINFO_DESC=		Metadata information about video & audio files
 MEDIAINFO_LIB_DEPENDS=	libmediainfo.so:${PORTSDIR}/multimedia/mediainfo
