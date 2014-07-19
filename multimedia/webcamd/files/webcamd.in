@@ -5,42 +5,70 @@
 # REQUIRE: DAEMON LOGIN
 # KEYWORD: shutdown
 #
-# It is recommended to configure webcamd in the following way:
+# ================================================================
+# Webcamd is enabled by adding the following line to /etc/rc.conf:
+# ================================================================
 #
 # webcamd_enable="YES"
-# webcamd_devices_0_name=<put here the single product name of your USB devices, as printed in the 2nd column of 'usbconfig' command. Do not repeat it.>
-# webcamd_devices_{1,2,3...99}_name=<put in seperate variables the name of 2nd, 3rd *types* of connected USB device. Only if you have a mixture of different model types>
 #
-# Advanced settings:
+# ================================================================
+# By default webcamd instances are invoked by the devd(8) system
+# daemon. You do not normally need to do any extra configuraion.
+# ================================================================
+# 
+# ================================================================
+# Webcamd flags can be set in general using this variable:
+# ================================================================
+# 
+# webcamd_flags="-m v4l2-dev.hflip=1"
+# 
+# ================================================================
+# If devd is not working (devd_enable="NO"), then you must tell
+# webcamd which devices you have explicitly with "_device_N_name"
+# as printed out when running the command "usbconfig".
+# 
+# Index "N" is a sequentially increasing number starting from "0". 
+# e.g. 0,1,2,3 etc... You must not skip any index numbers.
+# ================================================================
+# 
+# webcamd_device_0_name="Acer Crystal Eye webcam SuYin"
+# 
+# ================================================================
+# If you have multiple identical devices, then they can also be
+# distinguished by serial number, as found with these commands:
+# $ usbconfig && usbconfig dump_string 0x03
+# This setting is only needed when "device_0_name"="device_1_name"
+# AND you need to set *different* flags for each inividual device.
+# ================================================================
+# 
+# webcamd_device_0_serial="CN0314-SN30-OV03-VA-R02.03.02"
+# 
+# ================================================================
+# You may set individual flags on a per USB device basis with 
+# "_device_N_flags", along with a matching "_device_N_name" and 
+# "_device_N_serial" as above. This works for devd invokations too.
+# ================================================================
 #
-# webcamd_startup_delay=<if multiple devices, the number of seconds to wait before launching the next instance of webcamd>
+# webcamd_device_0_flags="-L 127.0.0.1:5100:-1"
+#
+# ================================================================
+# Or can specify manually, each seperate custom webcamd instances 
+# with this index being seperate from the auto-name finding.
+# This is useful when you cannot specify by name and serial number
+# and wish to specify by hard-coded USB device number instead.
+# Or when you need to start a vtuner client instance ("-D" option).
+# ================================================================
+# 
+# webcamd_custom_flags_0="-D 127.0.0.1:5100:-1"
+# webcamd_custom_flags_1="-d ugen2.2 127.0.0.1:5100:-1"
+# 
+# ================================================================
+# Additional Webcamd flags:
+# ================================================================
+#
+# webcamd_startup_delay=<seconds>
 # webcamd_user=<the user to run webcamd as>
 # webcamd_group=<the group to run webcamd as>
-# webcamd_flags=<set additional global webcamd flags, applied on all instances>
-#
-# 2 other ways:
-#
-# webcamd_devices=<a list of USB device numbers, such as 'ugen2.2' for webcamd to attach to>
-# webcamd_instance_{0,1,2,3}_flags=<to set manually each individual spawned instances, put here it's webcamd flags>
-#
-# You may use any of 3 ways in combination. Pick the right tool for right job.
-# However do not use more than one method for each physical device.
-#
-# Examples:
-# sysrc webcamd_enable=YES
-# sysrc webcamd_startup_delay=2
-#
-# Method 1:
-# sysrc "webcamd_devices_0_name=Acer Crystal Eye webcam SuYin"
-# sysrc "webcamd_devices_1_name=SCEH-0036 SONY"
-#
-# Method 2:
-# sysrc "webcamd_devices=ugen2.2, 7.3"
-#
-# Method 3:
-# sysrc webcamd_startup_delay=0
-# sysrc "webcamd_instance_0_flags=-L 127.0.0.1:5100:-1"
-# sysrc "webcamd_instance_1_flags=-d ugen7.4 -v 2 -i 1 -m v4l2-dev.hflip=1"
 #
 
 . /etc/rc.subr
@@ -55,6 +83,11 @@ load_rc_config $name
 : ${webcamd_user=webcamd}
 : ${webcamd_group=webcamd}
 : ${webcamd_startup_delay=1}
+: ${webcamd_devd_starts_custom=YES}
+
+# If invoked automatically by devd, we receive additional arguments
+devd_device=${2}
+devd_interface=${3-0}
 
 command=%%PREFIX%%/sbin/webcamd
 command_args="-B -U ${webcamd_user} -G ${webcamd_group}"
@@ -70,106 +103,339 @@ webcamd_pids()
   printf "${pids}"
 }
 
-webcamd_start()
+webcamd_set_vars()
 {
-  pids=$(webcamd_pids)
-
-  if [ "$pids" ]; then
-    echo "${name} already running?  (pid=${pids})."
-    return 1
+  # Whether or not we will start all custom instances, or just the vtuner client ones ("-D")
+  if checkyesno devd_enable && checkyesno webcamd_devd_starts_custom ; then
+    devd_starts_custom="true"
+  else
+    unset devd_starts_custom
   fi
 
+  # Whether or not we will use the 'hald' service
   if checkyesno hald_enable ; then
     command_args="$command_args -H"
   fi
 
-  # webcamd_devices_N_name
-  if [ "$webcamd_devices_0_name" ]; then
-    usbconfig=$(usbconfig)
-
-    n=0
-    while [ "$n" -lt "100" ]
-    do
-      devices_name=$(eval "echo \$webcamd_devices_${n}_name")
-
-      if [ "$devices_name" ]; then
-        device_names="$device_names, $devices_name"
-
-        found_devices=$(echo "$usbconfig" | grep "$devices_name" | cut -d ':' -f 1)
-        if [ "$found_devices" ]; then
-          autodetected_devices="$autodetected_devices $found_devices"
-        fi
-
-        n=$(expr $n + 1)
-      else
-        break
-      fi
-    done
+  # Whether or not we start all of our USB devices from this script, and can report certain errors
+  if checkyesno devd_enable && [ ! "$rc_force" ]; then
+    unset not_devd
+  else
+    not_devd="true"
   fi
+}
 
-  webcamd_devices="$autodetected_devices $webcamd_devices"
-  webcamd_devices=$(echo "${webcamd_devices# }" | tr -s ',' ' ')
-  num_instances_remaining=$(echo "$webcamd_devices" | wc -w | grep -o -E "[0-9]+")
+webcamd_start()
+{
+  # Set configuration variables that we need for later on
+  webcamd_set_vars;
 
+  # If this rc.d script was invoked by devd
+  if [ "$devd_device" ]; then
+    # Then start the device ugenX.X, as provied in the argv $2, $3
+    webcamd_start_devd;
+
+  else
+    # Count the number of webcamd instances we will start
+    webcamd_count_instances;
+
+    if [ "$num_instances_remaining" -gt 0 ]; then
+      echo "Starting ${name}."
+
+      # If custom instance config lines were found
+      if [ "$webcamd_custom_flags_0" ]; then
+
+        if [ "$devd_starts_custom" ]; then
+          # Start only the vtuner client custom instances (the others are started by devd)
+          webcamd_start_by_vtuner_client_flags;
+        else
+          # Start each specified custom instances
+          webcamd_start_by_custom_flags;
+        fi
+      fi
+
+      if [ "$num_found_by_name_serial" -gt "0" ]; then
+        # If we found any devices matching a specified USB name, USB serial number, we must start them
+        webcamd_start_by_usb_name_serial;
+      fi
+
+      # Check that webcamd started up (didn't quit unexpectedly or error out)
+      webcamd_check_started;
+
+    # Skip this error message if we are starting our devices from devd
+    elif [ "$not_devd" ]; then
+
+      # Display an appropriate error message to explain why webcamd could not be started
+      if [ "$device_names" ]; then
+        warn "failed to start ${name}."
+        echo "No connected devices found of type: ${device_names#, }."
+        return 1
+
+      else
+        warn "failed to start ${name}."
+        echo "webcamd settings need to be configured in /etc/rc.conf."
+        echo "See %%PREFIX%%/etc/rc.d/${name} for more info."
+        return 1
+      fi
+    fi
+
+  fi
+}
+
+webcamd_find_devd_flags_by_custom_flags()
+{
+  # Find matching flags in any custom instances
   n=0
   while [ "$n" -lt "100" ]
   do
-    if [ "$(eval "echo \$webcamd_instance_${n}_flags")" ]; then
+    custom_flags=$(eval "echo \$webcamd_custom_flags_${n}")
+    if [ "$custom_flags" ]; then
+
+      # GREP the devd USB device number against this line of custom instance flags
+      d_flag_match=$(echo "$custom_flags" | grep -o "\-d *[[:alpha:]]*${devd_device#ugen}")
+      if [ "$d_flag_match" ]; then
+
+        if [ "$devd_starts_custom" ]; then
+          # Remember / store these custom flags
+          devd_custom_flags=$(echo "$custom_flags" | sed -e "s/$d_flag_match *//")
+
+        else
+          # This particular devd invokation will be ignored, and we exit this script immediately.
+          # Because custom_flags_N are instead started during the normal webcamd rc.d startup.
+          exit 0
+        fi
+        break
+      fi
+
       n=$(expr $n + 1)
     else
       break
     fi
   done
-  num_instances_remaining=$(expr $num_instances_remaining + $n)
+}
 
-  # Check that necessary webcamd_ variables have been configured
-  if [ ! "$webcamd_devices" ] && [ ! "$webcamd_instance_0_flags" ]; then
-    if [ ! "$webcamd_devices_0_name" ]; then
-      warn "failed to start ${name}."
-      echo "webcamd settings need to be configured in /etc/rc.conf."
-      echo "See %%PREFIX%%/etc/rc.d/${name} for more info."
-      return 1
-    else
-      warn "failed to start ${name}."
-      echo "No connected devices found of type: ${device_names#, }."
-      return 1
-    fi
-  fi
+webcamd_find_devd_flags_by_usb_name_serial()
+{
+  # Lookup the names and serial numbers of USB devices
+  usbconfig_names=$(usbconfig)
+  usbconfig_serials=$(usbconfig dump_string 0x03)
+  usbconfig_line=$(echo "$usbconfig_names" | grep -n "^ugen${devd_device#ugen}")
+  usbconfig_line_num="$(echo "$usbconfig_line" | cut -d ':' -f 1)"
 
-  echo "Starting ${name}."
+  # Determine the USB device name and serial number
+  devd_usb_name=$(echo "$usbconfig_line" | sed -e 's/.*: <//' -e 's/> at .*//')
+  devd_usb_serial=$(echo "$usbconfig_serials" | sed -n "${usbconfig_line_num}p" | sed -e 's/.* = <//' -e 's/>.*//')
 
-  # webcamd_devices
-  for device in $webcamd_devices
-  do
-    # Launch an instance of webcamd for this device
-    ${command} ${command_args} ${webcamd_flags} -d ${device}
-    num_instances_remaining=$(expr $num_instances_remaining - 1)
-
-    # Wait n seconds until launching the next instance for the next device
-    if [ "$num_instances_remaining" -gt 0 ]; then
-      sleep $webcamd_startup_delay
-    fi
-  done
-
-  # additional instances
+  # Find any flags matching the USB name / USB serial number
   n=0
   while [ "$n" -lt "100" ]
   do
-    instance_flags=$(eval "echo \$webcamd_instance_${n}_flags")
+    device_name=$(eval "echo \$webcamd_device_${n}_name")
 
-    if [ "$instance_flags" ]; then
+    if [ "$device_name" ]; then
+      if [ "$device_name" = "$devd_usb_name" ]; then
 
-      if [ "$(echo "$instance_flags" | grep -o "\-U \|\-G ")" ]; then
-        # Don't override user and group with the global value if they were explicitly set
-        ${command} -B ${webcamd_flags} ${instance_flags}
+        # If serial numbers are also specified in config
+        name_serial=$(eval "echo \$webcamd_device_${n}_serial")
+        if [ "$name_serial" ]; then
+
+          # if matches a USB name AND by USB serial number
+          if [ "$name_serial" = "$devd_usb_serial" ]; then
+            # remember / store these custom flags
+            devd_name_serial_flags=$(eval "echo \$webcamd_device_${n}_flags")
+            break
+          fi
+
+        else
+          # We have match by USB name only, no serial
+          devd_name_serial_flags=$(eval "echo \$webcamd_device_${n}_flags")
+          break
+        fi
+      fi
+      n=$(expr $n + 1)
+    else
+      break
+    fi
+  done
+}
+
+webcamd_start_devd()
+{
+  # Start a single USB device, as this rc.d script was invoked by devd with extra arguments
+
+  # First check for any custom flags that
+
+  if [ "$webcamd_custom_flags_0" ]; then
+    # that were specified as custom instance flags
+    webcamd_find_devd_flags_by_custom_flags;
+  fi
+
+  if [ "$webcamd_device_0_name" ]; then
+    # that were specified by the USB device name, USB serial number
+    webcamd_find_devd_flags_by_usb_name_serial;
+  fi
+
+  # Start the connected USB device, with any matching custom flags that were found
+  echo "Starting ${name} -d ${devd_device} -i ${devd_interface} ${devd_custom_flags} ${devd_name_serial_flags} ${webcamd_flags} ${command_args}" | tr -s ' '
+  ${command} -d ${devd_device} -i ${devd_interface} ${devd_custom_flags} ${devd_name_serial_flags} ${webcamd_flags} ${command_args}
+}
+
+webcamd_count_instances()
+{
+  # This variable keeps track of how many instances we will start
+  num_instances_remaining=0
+  num_found_by_name_serial=0
+
+  if [ "$devd_starts_custom" ]; then
+    # Count the number of vtuner client custom instances we will start
+    webcamd_count_custom_instances_vtuner_client;
+
+  else
+    # Count the number of custom instances we will start
+    webcamd_count_custom_instances_all;
+  fi
+
+  # Skip this part if we are starting our devices from devd
+  if [ "$not_devd" ]; then
+
+    # Error out if webcamd is already running
+    pids=$(webcamd_pids)
+    if [ "$pids" ]; then
+      echo "${name} already running?  (pid=${pids})."
+      exit 1
+    fi
+
+    if [ "$webcamd_device_0_name" ]; then
+      # Find and count the number of devices that match specified USB names and USB serial numbers
+      webcamd_find_count_by_usb_name_serial;
+    fi
+  fi
+}
+
+webcamd_find_count_by_usb_name_serial()
+{
+  # Gather data about all connected USB devices from usbconfig
+  usbconfig_devices=$(usbconfig)
+  usbconfig_serials=$(usbconfig dump_string 0x03)
+
+  # Find connected devices by USB name / USB serial number
+  n=0
+  while [ "$n" -lt "100" ]
+  do
+    device_name=$(eval "echo \$webcamd_device_${n}_name")
+
+    if [ "$device_name" ]; then
+
+      # If the config line also has a USB serial number specified
+      device_serial=$(eval "echo \$webcamd_device_${n}_serial")
+      if [ "$device_serial" ]; then
+
+        # find the first connected device that matches USB name AND USB serial number
+        usbconfig_line_num="$(echo "$usbconfig_serials" | grep --max-count=1 -n "$device_serial" | cut -d ':' -f 1)"
+        if [ "$usbconfig_line_num" ]; then
+          found_usb_devices=$(echo "$usbconfig_devices" | sed -n "${usbconfig_line_num}p" | cut -d ':' -f 1)
+        fi
+        # Remember text string for possible error message later on
+        device_names="$device_names, $device_name (with serial: $device_serial)"
+
       else
-        # Launch an instance of webcamd with these specific instance flags
-        ${command} ${command_args} ${webcamd_flags} ${instance_flags}
+        # match by USB name only
+        found_usb_devices=$(echo "$usbconfig_devices" | grep "$device_name" | cut -d ':' -f 1)
+
+        # Remember text string for possible error message later on
+        device_names="$device_names, $device_name"
       fi
 
+      # Store for later
+      eval "webcamd_device_${n}_devices=$found_usb_devices"
+      num_found_this_loop=$(echo "$found_usb_devices" | wc -w | grep -o -E "[0-9]+")
+      num_found_by_name_serial=$(expr $num_found_by_name_serial + $num_found_this_loop)
+      n=$(expr $n + 1)
+    else
+      break
+    fi
+  done
+  num_instances_remaining=$(expr $num_instances_remaining + $num_found_by_name_serial)
+}
+
+webcamd_start_by_usb_name_serial()
+{
+  # Start any devices that were found by USB name / USB serial number
+  n=0
+  while [ "$n" -lt "100" ]
+  do
+    device_name=$(eval "echo \$webcamd_device_${n}_name")
+
+    if [ "$device_name" ]; then
+      # Any connected USB devices that match the specified USB name, USB serial number ?
+      devices=$(eval "echo \$webcamd_device_${n}_devices")
+      if [ "$devices" ]; then
+
+        for device in $devices
+        do
+          device_flags=$(eval "echo \$webcamd_device_${n}_flags")
+
+          # Launch an instance of webcamd for this device
+          ${command} -d ${device} ${device_flags} ${webcamd_flags} ${command_args}
+          num_instances_remaining=$(expr $num_instances_remaining - 1)
+
+          # Wait n seconds until launching the next instance for the next device
+          if [ "$num_instances_remaining" -gt 0 ]; then
+            sleep $webcamd_startup_delay
+          fi
+        done
+      fi
+      n=$(expr $n + 1)
+    else
+      break
+    fi
+  done
+}
+
+webcamd_count_custom_instances_vtuner_client()
+{
+  # count the number of vtuner client instances to be launched
+
+  n=0 # outer loop - all custom instances
+  i=0 # inner loop - vclient instances ('-D')
+
+  while [ "$n" -lt "100" ]
+  do
+    custom_flags=$(eval "echo \$webcamd_custom_flags_${n}")
+    if [ "$custom_flags" ]; then
+
+      # If this custom_flags line is for a virtual device ('-D')
+      if [ "$(echo "$custom_flags" | grep "\-D *")" ]; then
+
+        # Copy to the array webcamd_vtuner_client_${n}_flags
+        eval "webcamd_vtuner_client_${i}_flags=\$custom_flags"
+        i=$(expr $i + 1)
+      fi
+      n=$(expr $n + 1)
+    else
+      break
+    fi
+  done
+  num_instances_remaining=$(expr $num_instances_remaining + $i)
+}
+
+webcamd_start_by_vtuner_client_flags()
+{
+  # Start any vtuner client instances
+  n=0
+  while [ "$n" -lt "100" ]
+  do
+    vtuner_client_flags=$(eval "echo \$webcamd_vtuner_client_${n}_flags")
+
+    if [ "$vtuner_client_flags" ]; then
+      # Launch an instance of webcamd with these specific vtuner client ('-D') flags
+      ${command} ${vtuner_client_flags} ${webcamd_flags} ${command_args}
+
+      # increment the counters
       num_instances_remaining=$(expr $num_instances_remaining - 1)
       n=$(expr $n + 1)
 
+      # Wait n seconds until launching the next instance for the next device
       if [ "$num_instances_remaining" -gt 0 ]; then
         sleep $webcamd_startup_delay
       fi
@@ -177,8 +443,53 @@ webcamd_start()
       break
     fi
   done
+}
 
+webcamd_count_custom_instances_all()
+{
+  # count the number of instances to be launched
+  n=0
+  while [ "$n" -lt "100" ]
+  do
+    if [ "$(eval "echo \$webcamd_custom_flags_${n}")" ]; then
+      n=$(expr $n + 1)
+    else
+      break
+    fi
+  done
+  num_instances_remaining=$(expr $num_instances_remaining + $n)
+}
+
+webcamd_start_by_custom_flags()
+{
+  # Start any custom instances
+  n=0
+  while [ "$n" -lt "100" ]
+  do
+    custom_flags=$(eval "echo \$webcamd_custom_flags_${n}")
+
+    if [ "$custom_flags" ]; then
+      # Launch a custom instance of webcamd with these specific custom flags
+      ${command} ${custom_flags} ${webcamd_flags} ${command_args}
+
+      # increment the counters
+      num_instances_remaining=$(expr $num_instances_remaining - 1)
+      n=$(expr $n + 1)
+
+      # Wait n seconds until launching the next instance for the next device
+      if [ "$num_instances_remaining" -gt 0 ]; then
+        sleep $webcamd_startup_delay
+      fi
+    else
+      break
+    fi
+  done
+}
+
+webcamd_check_started()
+{
   # Check that at least 1+ webcamd processes are persistent
+
   if [ "$webcamd_startup_delay" -gt 0 ]; then
     # but not if doing "fast-start". When webcamd_startup_delay = 0 seconds
     sleep 1
