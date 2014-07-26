@@ -3,7 +3,7 @@
 
 PORTNAME=	tvheadend
 PORTVERSION=	3.4.0.20130726.3
-PORTREVISION=	5
+PORTREVISION=	6
 CATEGORIES=	multimedia
 MASTER_SITES=	http://people.freebsd.org/~decke/distfiles/
 DISTNAME=	decke-${PORTNAME}-8a8c1a8
@@ -26,14 +26,10 @@ GNU_CONFIGURE=	yes
 MAKE_JOBS_UNSAFE=	yes
 USE_RC_SUBR=	${PORTNAME}
 
-TVHUSER?=	webcamd
-TVHGROUP?=	webcamd
-USERS=		${TVHUSER}
-GROUPS=		${TVHGROUP}
-SUB_LIST+=	TVHUSER="${TVHUSER}" \
-		TVHGROUP="${TVHGROUP}"
+USERS=		tvheadend
+GROUPS=		tvheadend webcamd
 
-OPTIONS_DEFINE=	AVAHI DVBCSA
+OPTIONS_DEFINE=	AVAHI DVBCSA XMLTV
 OPTIONS_DEFAULT=DVBCSA
 DVBCSA_DESC=	Replace internal ffdecsa with dvbcsa
 
@@ -46,6 +42,8 @@ AVAHI_LIB_DEPENDS=	libavahi-client.so:${PORTSDIR}/net/avahi-app
 
 DVBCSA_LIB_DEPENDS=	libdvbcsa.so:${PORTSDIR}/multimedia/libdvbcsa
 DVBCSA_CONFIGURE_ENABLE=	dvbcsa
+
+XMLTV_RUN_DEPENDS=	p5-xmltv>=0:${PORTSDIR}/textproc/p5-xmltv
 
 .include <bsd.port.pre.mk>
 

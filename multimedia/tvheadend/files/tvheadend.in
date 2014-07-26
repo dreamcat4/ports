@@ -16,17 +16,22 @@
 
 . /etc/rc.subr
 
-: ${tvheadend_enable="NO"}
-: ${tvheadend_user="%%TVHUSER%%"}
-: ${tvheadend_group="%%TVHGROUP%%"}
-
 name=tvheadend
 rcvar=tvheadend_enable
+load_rc_config $name
+
+: ${tvheadend_enable:=NO}
+: ${tvheadend_user=tvheadend}
+: ${tvheadend_group=webcamd}
+
 pidfile="/var/run/${name}.pid"
 confdir="%%PREFIX%%/etc/tvheadend"
 command="%%PREFIX%%/bin/tvheadend"
 command_args="-f -p ${pidfile} -u ${tvheadend_user} -g ${tvheadend_group} -c ${confdir}"
 start_precmd="${name}_prestart"
+
+# TvHeadend looks for EPG Grabber executables 'tv_grab_*' on $PATH, so PATH must include %%PREFIX%%/bin
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:%%PREFIX%%/sbin:%%PREFIX%%/bin
 
 tvheadend_prestart()
 {
@@ -37,7 +42,5 @@ tvheadend_prestart()
 		/usr/bin/install -o ${tvheadend_user} -g ${tvheadend_group} -m 755 -d ${confdir}
 	fi
 }
-
-load_rc_config $name
 
 run_rc_command "$1"
