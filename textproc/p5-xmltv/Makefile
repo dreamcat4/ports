@@ -40,7 +40,7 @@ XMLTV_DEPENDS=	\
 	p5-HTTP-Cache-Transparent>=0:${PORTSDIR}/www/p5-HTTP-Cache-Transparent \
 	p5-IO-stringy>=0:${PORTSDIR}/devel/p5-IO-stringy \
 	p5-TimeDate>=0:${PORTSDIR}/devel/p5-TimeDate \
-	p5-Slurp>=0:${PORTSDIR}/devel/p5-Slurp
+	p5-File-Slurp>=0:${PORTSDIR}/devel/p5-File-Slurp
 BUILD_DEPENDS=	${XMLTV_DEPENDS}
 RUN_DEPENDS=	${XMLTV_DEPENDS}
 
