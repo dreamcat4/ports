@@ -22,7 +22,7 @@ load_rc_config $name
 
 : ${tvheadend_enable:=NO}
 : ${tvheadend_user=tvheadend}
-: ${tvheadend_group=webcamd}
+: ${tvheadend_group=tvheadend}
 
 pidfile="/var/run/${name}.pid"
 confdir="%%PREFIX%%/etc/tvheadend"
