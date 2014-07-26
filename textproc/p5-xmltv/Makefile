@@ -3,7 +3,7 @@
 
 PORTNAME=	xmltv
 PORTVERSION=	0.5.61
-PORTREVISION=	1
+PORTREVISION=	2
 CATEGORIES=	textproc perl5
 MASTER_SITES=	SF
 PKGNAMEPREFIX=	p5-
@@ -39,7 +39,8 @@ XMLTV_DEPENDS=	\
 	p5-Archive-Zip>=0:${PORTSDIR}/archivers/p5-Archive-Zip \
 	p5-HTTP-Cache-Transparent>=0:${PORTSDIR}/www/p5-HTTP-Cache-Transparent \
 	p5-IO-stringy>=0:${PORTSDIR}/devel/p5-IO-stringy \
-	p5-TimeDate>=0:${PORTSDIR}/devel/p5-TimeDate
+	p5-TimeDate>=0:${PORTSDIR}/devel/p5-TimeDate \
+	p5-Slurp>=0:${PORTSDIR}/devel/p5-Slurp
 BUILD_DEPENDS=	${XMLTV_DEPENDS}
 RUN_DEPENDS=	${XMLTV_DEPENDS}
 
