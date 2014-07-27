@@ -2,8 +2,7 @@
 # $FreeBSD: head/textproc/p5-xmltv/Makefile 360693 2014-07-04 23:51:25Z antoine $
 
 PORTNAME=	xmltv
-PORTVERSION=	0.5.61
-PORTREVISION=	2
+PORTVERSION=	0.5.65
 CATEGORIES=	textproc perl5
 MASTER_SITES=	SF
 PKGNAMEPREFIX=	p5-
