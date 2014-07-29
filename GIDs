@@ -285,6 +285,7 @@ radicale:*:974:
 unifi:*:975:
 minetest:*:976:
 ums:*:979:
-tvheadend:*:980:
+hbase:*:980:
+tvheadend:*:981:
 nogroup:*:65533:
 nobody:*:65534:
