@@ -71,21 +71,14 @@ post-patch:
 .if ${OSVERSION} < 1000000
 	@${REINPLACE_CMD} 's|-Werror||' \
 		${WRKSRC}/Makefile
-# begin clang 3.3 on FreeBSD 9.2 errors out with "cc1: error: unrecognized command line option"
-    # @${REINPLACE_CMD} 's|-Qunused-arguments||' \
-    #   ${WRKSRC}/Makefile
-    # @${REINPLACE_CMD} 's|-Wno-microsoft||' \
-    #   ${WRKSRC}/Makefile
-    # @${REINPLACE_CMD} 's|-Wno-tautological-constant-out-of-range-compare||' \
-    #   ${WRKSRC}/Makefile
-    # @${REINPLACE_CMD} 's|-Wno-parentheses-equality||' \
-    #   ${WRKSRC}/Makefile
-    # @${REINPLACE_CMD} 's|-Wno-incompatible-pointer-types||' \
-    #   ${WRKSRC}/Makefile
-# end clang 3.3 errors
-.endif
+.else
+# begin clang errors on FreeBSD 10+
 	@${REINPLACE_CMD} 's|clang|cc|' \
 		${WRKSRC}/Makefile
+	@${REINPLACE_CMD} 's|-Wno-microsoft||' \
+		${WRKSRC}/Makefile
+# end clang errors
+.endif
 	@${REINPLACE_CMD} 's|#\!/bin/bash|#\!${LOCALBASE}/bin/bash|' \
 		${WRKSRC}/Autobuild.sh \
 		${WRKSRC}/configure \
