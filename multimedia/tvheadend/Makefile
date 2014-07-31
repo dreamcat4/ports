@@ -52,13 +52,13 @@ XMLTV_RUN_DEPENDS=	p5-xmltv>=0:${PORTSDIR}/textproc/p5-xmltv
 
 .include <bsd.port.pre.mk>
 
-.if ${OSVERSION} < 900000
-.if ${ARCH} == "amd64" || ${ARCH} == "sparc64" || ${ARCH} == "mips64"
-CFLAGS+=	-D__WORDSIZE=64
-.else
-CFLAGS+=	-D__WORDSIZE=32
-.endif
-.endif
+# .if ${OSVERSION} < 900000
+# .if ${ARCH} == "amd64" || ${ARCH} == "sparc64" || ${ARCH} == "mips64"
+# CFLAGS+=	-D__WORDSIZE=64
+# .else
+# CFLAGS+=	-D__WORDSIZE=32
+# .endif
+# .endif
 
 post-patch:
 	@${REINPLACE_CMD} 's|0.0.0~unknown|${PORTVERSION}-${GH_COMMIT}|' \
@@ -72,6 +72,9 @@ post-patch:
 	@${REINPLACE_CMD} 's|-Werror||' \
 		${WRKSRC}/Makefile
 .else
+	# ignore clang warnings on FreeBSD 10+
+	@${REINPLACE_CMD} 's|-Werror||' \
+		${WRKSRC}/Makefile
 	# suppress clang errors on FreeBSD 10+
 	@${REINPLACE_CMD} 's|clang|clang-options-disabled|' \
 		${WRKSRC}/Makefile
