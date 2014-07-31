@@ -68,6 +68,7 @@ post-patch:
 		${WRKSRC}/Makefile
 	@${REINPLACE_CMD} 's|-ldl||' \
 		${WRKSRC}/Makefile
+.if ${OSVERSION} < 1000000
 	@${REINPLACE_CMD} 's|-Werror||' \
 		${WRKSRC}/Makefile
 # begin clang 3.3 on FreeBSD 9.2 errors out with "cc1: error: unrecognized command line option"
@@ -82,6 +83,9 @@ post-patch:
     # @${REINPLACE_CMD} 's|-Wno-incompatible-pointer-types||' \
     #   ${WRKSRC}/Makefile
 # end clang 3.3 errors
+.endif
+	@${REINPLACE_CMD} 's|clang|cc|' \
+		${WRKSRC}/Makefile
 	@${REINPLACE_CMD} 's|#\!/bin/bash|#\!${LOCALBASE}/bin/bash|' \
 		${WRKSRC}/Autobuild.sh \
 		${WRKSRC}/configure \
