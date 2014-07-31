@@ -52,13 +52,13 @@ XMLTV_RUN_DEPENDS=	p5-xmltv>=0:${PORTSDIR}/textproc/p5-xmltv
 
 .include <bsd.port.pre.mk>
 
-# .if ${OSVERSION} < 900000
-# .if ${ARCH} == "amd64" || ${ARCH} == "sparc64" || ${ARCH} == "mips64"
-# CFLAGS+=	-D__WORDSIZE=64
-# .else
-# CFLAGS+=	-D__WORDSIZE=32
-# .endif
-# .endif
+.if ${OSVERSION} < 900000
+.if ${ARCH} == "amd64" || ${ARCH} == "sparc64" || ${ARCH} == "mips64"
+CFLAGS+=	-D__WORDSIZE=64
+.else
+CFLAGS+=	-D__WORDSIZE=32
+.endif
+.endif
 
 post-patch:
 	@${REINPLACE_CMD} 's|0.0.0~unknown|${PORTVERSION}-${GH_COMMIT}|' \
@@ -67,16 +67,15 @@ post-patch:
 		${WRKSRC}/Makefile
 	@${REINPLACE_CMD} 's|-ldl||' \
 		${WRKSRC}/Makefile
-.if ${OSVERSION} < 1000000
-	# ignore gcc warnings on FreeBSD 9.X
+	# ignore gcc warnings on FreeBSD 9.X, and clang warnings on FreeBSD 10+
 	@${REINPLACE_CMD} 's|-Werror||' \
 		${WRKSRC}/Makefile
-.else
-	# ignore clang warnings on FreeBSD 10+
-	@${REINPLACE_CMD} 's|-Werror||' \
-		${WRKSRC}/Makefile
+.if ${OSVERSION} >= 1000000
 	# suppress clang errors on FreeBSD 10+
-	@${REINPLACE_CMD} 's|clang|clang-options-disabled|' \
+	# @${REINPLACE_CMD} 's|clang|clang-options-disabled|' \
+
+	# because clang is identified as 'cc' on FreeBSD 10+
+	@${REINPLACE_CMD} 's|clang|cc|' \
 		${WRKSRC}/Makefile
 .endif
 	@${REINPLACE_CMD} 's|#\!/bin/bash|#\!${LOCALBASE}/bin/bash|' \
