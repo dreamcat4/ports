@@ -35,7 +35,6 @@ USERS=		tvheadend
 GROUPS=		tvheadend webcamd
 
 CONFIGURE_ENV+=	PLATFORM=freebsd
-#CONFIGURE_ARGS+=--disable-zlib --disable-libav --disable-dvbscan --cc=clang
 CONFIGURE_ARGS+=--disable-zlib --disable-libav --disable-dvbscan
 CFLAGS+=	-I${LOCALBASE}/include -Wno-conversion -Wno-int-to-pointer-cast
 LDFLAGS+=	-L${LOCALBASE}/lib -lexecinfo -lssl -lz
@@ -69,15 +68,13 @@ post-patch:
 	@${REINPLACE_CMD} 's|-ldl||' \
 		${WRKSRC}/Makefile
 .if ${OSVERSION} < 1000000
+	# ignore gcc warnings on FreeBSD 9.X
 	@${REINPLACE_CMD} 's|-Werror||' \
 		${WRKSRC}/Makefile
 .else
-# begin clang errors on FreeBSD 10+
-	@${REINPLACE_CMD} 's|clang|cc|' \
+	# suppress clang errors on FreeBSD 10+
+	@${REINPLACE_CMD} 's|clang|clang-options-disabled|' \
 		${WRKSRC}/Makefile
-	# @${REINPLACE_CMD} 's|-Wno-microsoft||' \
-	# 	${WRKSRC}/Makefile
-# end clang errors
 .endif
 	@${REINPLACE_CMD} 's|#\!/bin/bash|#\!${LOCALBASE}/bin/bash|' \
 		${WRKSRC}/Autobuild.sh \
