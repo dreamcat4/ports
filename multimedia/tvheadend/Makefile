@@ -2,23 +2,28 @@
 # $FreeBSD$
 
 PORTNAME=	tvheadend
-PORTVERSION=	3.4.0.20130726.3
-PORTREVISION=	6
+PORTVERSION=	3.9.20140730
 CATEGORIES=	multimedia
-MASTER_SITES=	http://people.freebsd.org/~decke/distfiles/
-DISTNAME=	decke-${PORTNAME}-8a8c1a8
-DISTFILES=	${PORTNAME}-${PORTVERSION}${EXTRACT_SUFX} dvb-scan-tables-20130714.tar.gz
 
 MAINTAINER=	decke@FreeBSD.org
 COMMENT=	TV streaming server supporting DVB, IPTV and V4L
 
 LICENSE=	GPLv3
 
+USE_GITHUB=	yes
+#GH_ACCOUNT=	${PORTNAME}
+GH_ACCOUNT=	dreamcat4
+GH_PROJECT=	${PORTNAME}
+GH_TAGNAME=	${GH_COMMIT}
+GH_COMMIT=	c168cb3
+
 BUILD_DEPENDS=	bash:${PORTSDIR}/shells/bash \
 		${LOCALBASE}/include/linux/videodev2.h:${PORTSDIR}/multimedia/v4l_compat
 
 LIB_DEPENDS=	libexecinfo.so:${PORTSDIR}/devel/libexecinfo \
 		libcurl.so:${PORTSDIR}/ftp/curl
+
+RUN_DEPENDS=	dtv-scan-tables>=0:${PORTSDIR}/multimedia/dtv-scan-tables
 
 USES=		pkgconfig gmake
 USE_PYTHON=	yes
@@ -29,19 +34,20 @@ USE_RC_SUBR=	${PORTNAME}
 USERS=		tvheadend
 GROUPS=		tvheadend webcamd
 
-OPTIONS_DEFINE=	AVAHI DVBCSA XMLTV
-OPTIONS_DEFAULT=DVBCSA
-DVBCSA_DESC=	Replace internal ffdecsa with dvbcsa
-
 CONFIGURE_ENV+=	PLATFORM=freebsd
-CONFIGURE_ARGS+=--disable-dvbscan --disable-zlib --disable-libav
+#CONFIGURE_ARGS+=--disable-zlib --disable-libav --disable-dvbscan --cc=clang
+CONFIGURE_ARGS+=--disable-zlib --disable-libav --disable-dvbscan
 CFLAGS+=	-I${LOCALBASE}/include -Wno-conversion -Wno-int-to-pointer-cast
 LDFLAGS+=	-L${LOCALBASE}/lib -lexecinfo -lssl -lz
 
-AVAHI_LIB_DEPENDS=	libavahi-client.so:${PORTSDIR}/net/avahi-app
+OPTIONS_DEFINE=	DVBCSA AVAHI XMLTV
+OPTIONS_DEFAULT=DVBCSA
 
+DVBCSA_DESC=		Replace internal ffdecsa with dvbcsa
 DVBCSA_LIB_DEPENDS=	libdvbcsa.so:${PORTSDIR}/multimedia/libdvbcsa
-DVBCSA_CONFIGURE_ENABLE=	dvbcsa
+DVBCSA_CONFIGURE_ENABLE=dvbcsa
+
+AVAHI_LIB_DEPENDS=	libavahi-client.so:${PORTSDIR}/net/avahi-app
 
 XMLTV_RUN_DEPENDS=	p5-xmltv>=0:${PORTSDIR}/textproc/p5-xmltv
 
@@ -55,18 +61,28 @@ CFLAGS+=	-D__WORDSIZE=32
 .endif
 .endif
 
-.if ( !empty(CC:M*clang*) || ${OSVERSION} >= 1000024 )
-# CLANG also needs -Wno-microsoft which GCC 4.2 does not know
-CFLAGS+=	-Wno-microsoft \
-		-Wno-tautological-constant-out-of-range-compare
-.endif
-
 post-patch:
+	@${REINPLACE_CMD} 's|0.0.0~unknown|${PORTVERSION}-${GH_COMMIT}|' \
+		${WRKSRC}/support/version
 	@${REINPLACE_CMD} 's|-g||' \
 		${WRKSRC}/Makefile
 	@${REINPLACE_CMD} 's|-ldl||' \
 		${WRKSRC}/Makefile
-	@${REINPLACE_CMD} 's|/bin/bash|${LOCALBASE}/bin/bash|' \
+	@${REINPLACE_CMD} 's|-Werror||' \
+		${WRKSRC}/Makefile
+# begin clang 3.3 on FreeBSD 9.2 errors out with "cc1: error: unrecognized command line option"
+    # @${REINPLACE_CMD} 's|-Qunused-arguments||' \
+    #   ${WRKSRC}/Makefile
+    # @${REINPLACE_CMD} 's|-Wno-microsoft||' \
+    #   ${WRKSRC}/Makefile
+    # @${REINPLACE_CMD} 's|-Wno-tautological-constant-out-of-range-compare||' \
+    #   ${WRKSRC}/Makefile
+    # @${REINPLACE_CMD} 's|-Wno-parentheses-equality||' \
+    #   ${WRKSRC}/Makefile
+    # @${REINPLACE_CMD} 's|-Wno-incompatible-pointer-types||' \
+    #   ${WRKSRC}/Makefile
+# end clang 3.3 errors
+	@${REINPLACE_CMD} 's|#\!/bin/bash|#\!${LOCALBASE}/bin/bash|' \
 		${WRKSRC}/Autobuild.sh \
 		${WRKSRC}/configure \
 		${WRKSRC}/support/changelog \
@@ -74,11 +90,5 @@ post-patch:
 		${WRKSRC}/support/getmuxlist \
 		${WRKSRC}/support/pbuilder \
 		${WRKSRC}/support/version
-	@${REINPLACE_CMD} 's|/usr/share/dvb|${DATADIR}/dvb|' \
-		${WRKSRC}/src/muxes.c
-
-post-install:
-	${MKDIR} ${STAGEDIR}${DATADIR}/dvb
-	${CP} -a ${WRKDIR}/dvb-scan-tables/ ${STAGEDIR}${DATADIR}/dvb
 
 .include <bsd.port.post.mk>

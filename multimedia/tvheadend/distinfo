@@ -1,4 +1,2 @@
-SHA256 (tvheadend-3.4.0.20130726.3.tar.gz) = 798e1972089303434738051820863a1092a4ea9cf413eea44b5381c667549c23
-SIZE (tvheadend-3.4.0.20130726.3.tar.gz) = 2321128
-SHA256 (dvb-scan-tables-20130714.tar.gz) = ba4458cdb19149186e56c20498cedd85c4e42bcb283d3f5285c24bd643ec6507
-SIZE (dvb-scan-tables-20130714.tar.gz) = 122674
+SHA256 (tvheadend-3.9.20140730.tar.gz) = 9aad1909ecdbd730c33964369b39d05f9d4edcbd5ab35588f7aebc0642fbfa43
+SIZE (tvheadend-3.9.20140730.tar.gz) = 14893170
