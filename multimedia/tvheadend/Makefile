@@ -75,8 +75,8 @@ post-patch:
 # begin clang errors on FreeBSD 10+
 	@${REINPLACE_CMD} 's|clang|cc|' \
 		${WRKSRC}/Makefile
-	@${REINPLACE_CMD} 's|-Wno-microsoft||' \
-		${WRKSRC}/Makefile
+	# @${REINPLACE_CMD} 's|-Wno-microsoft||' \
+	# 	${WRKSRC}/Makefile
 # end clang errors
 .endif
 	@${REINPLACE_CMD} 's|#\!/bin/bash|#\!${LOCALBASE}/bin/bash|' \
