@@ -36,18 +36,21 @@ USERS=		tvheadend
 GROUPS=		tvheadend webcamd
 
 CONFIGURE_ENV+=	PLATFORM=freebsd
-CONFIGURE_ARGS+=--disable-zlib --disable-libav --disable-dvbscan
+CONFIGURE_ARGS+=--disable-dvbscan --disable-zlib
 CFLAGS+=	-I${LOCALBASE}/include -Wno-conversion -Wno-int-to-pointer-cast
 LDFLAGS+=	-L${LOCALBASE}/lib -lexecinfo -lssl -lz
 
-OPTIONS_DEFINE=	DVBCSA AVAHI XMLTV
-OPTIONS_DEFAULT=DVBCSA
+OPTIONS_DEFINE=	DVBCSA AVAHI LIBAV XMLTV
+OPTIONS_DEFAULT=DVBCSA LIBAV
 
 DVBCSA_DESC=		Replace internal ffdecsa with dvbcsa
 DVBCSA_LIB_DEPENDS=	libdvbcsa.so:${PORTSDIR}/multimedia/libdvbcsa
 DVBCSA_CONFIGURE_ENABLE=dvbcsa
 
 AVAHI_LIB_DEPENDS=	libavahi-client.so:${PORTSDIR}/net/avahi-app
+
+LIBAB_LIB_DEPENDS=		libavcodec.so:${PORTSDIR}/multimedia/libav
+LIBAV_CONFIGURE_ENABLE=	libav
 
 XMLTV_RUN_DEPENDS=	p5-xmltv>=0:${PORTSDIR}/textproc/p5-xmltv
 
