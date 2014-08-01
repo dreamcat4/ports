@@ -2,7 +2,7 @@
 # $FreeBSD$
 
 PORTNAME=	tvheadend
-PORTVERSION=	3.9.20140730
+PORTVERSION=	3.9.20140801
 CATEGORIES=	multimedia
 
 MAINTAINER=	decke@FreeBSD.org
@@ -11,11 +11,12 @@ COMMENT=	TV streaming server supporting DVB, IPTV and V4L
 LICENSE=	GPLv3
 
 USE_GITHUB=	yes
-#GH_ACCOUNT=	${PORTNAME}
-GH_ACCOUNT=	dreamcat4
+GH_ACCOUNT=	${PORTNAME}
+#GH_ACCOUNT=	dreamcat4
 GH_PROJECT=	${PORTNAME}
 GH_TAGNAME=	${GH_COMMIT}
-GH_COMMIT=	c168cb3
+GH_COMMIT=	47bb0ef
+#GH_COMMIT=	c168cb3
 
 BUILD_DEPENDS=	bash:${PORTSDIR}/shells/bash \
 		${LOCALBASE}/include/linux/videodev2.h:${PORTSDIR}/multimedia/v4l_compat
@@ -52,14 +53,6 @@ XMLTV_RUN_DEPENDS=	p5-xmltv>=0:${PORTSDIR}/textproc/p5-xmltv
 
 .include <bsd.port.pre.mk>
 
-# .if ${OSVERSION} < 900000
-# .if ${ARCH} == "amd64" || ${ARCH} == "sparc64" || ${ARCH} == "mips64"
-# CFLAGS+=	-D__WORDSIZE=64
-# .else
-# CFLAGS+=	-D__WORDSIZE=32
-# .endif
-# .endif
-
 post-patch:
 	@${REINPLACE_CMD} 's|0.0.0~unknown|${PORTVERSION}-${GH_COMMIT}|' \
 		${WRKSRC}/support/version
@@ -87,3 +80,4 @@ post-patch:
 		${WRKSRC}/support/version
 
 .include <bsd.port.post.mk>
+
