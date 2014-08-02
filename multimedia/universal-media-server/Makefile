@@ -3,7 +3,7 @@
 
 PORTNAME=	universal-media-server
 DISTVERSION=	4.0.1
-CATEGORIES=	multimedia
+CATEGORIES=	multimedia java
 MASTER_SITES=	SF/unimediaserver/Official%20Releases/Linux
 DISTFILES=	UMS-${DISTVERSION}.tgz
 
