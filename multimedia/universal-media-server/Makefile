@@ -2,7 +2,7 @@
 # $FreeBSD: head/multimedia/universal-media-server/Makefile 361621 2014-07-12 15:22:00Z pi $
 
 PORTNAME=	universal-media-server
-DISTVERSION=	4.0.0
+DISTVERSION=	4.0.1
 CATEGORIES=	multimedia
 MASTER_SITES=	SF/unimediaserver/Official%20Releases/Linux
 DISTFILES=	UMS-${DISTVERSION}.tgz
