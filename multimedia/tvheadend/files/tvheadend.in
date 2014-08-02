@@ -11,6 +11,7 @@
 # tvheadend_enable (bool):	Set to "NO" by default.
 #				Set it to "YES" to enable tvheadend.
 # tvheadend_user (str):		User account to run with.
+# tvheadend_group (str):	Group to run as.
 # tvheadend_flags (str):	Custom flags for tvheadend.
 
 . /etc/rc.subr
@@ -21,12 +22,14 @@ load_rc_config $name
 
 : ${tvheadend_enable:=NO}
 : ${tvheadend_user=tvheadend}
+: ${tvheadend_group=tvheadend}
 
 pidfile="/var/run/${name}.pid"
 confdir="%%PREFIX%%/etc/tvheadend"
+logdir="/var/log/tvheadend"
 command="%%PREFIX%%/bin/tvheadend"
 
-command_args="-f -p ${pidfile} -c ${confdir}"
+command_args="-f -p ${pidfile} -c ${confdir} -l ${logdir}/tvheadend.log -u ${tvheadend_user} -g ${tvheadend_group}"
 start_precmd="${name}_prestart"
 
 # TvHeadend looks for EPG Grabber executables 'tv_grab_*' on $PATH, so PATH must include %%PREFIX%%/bin
@@ -39,6 +42,9 @@ tvheadend_prestart()
 	fi
 	if [ ! -d "${confdir}" ]; then
 		/usr/bin/install -o ${tvheadend_user} -g ${tvheadend_user} -m 755 -d ${confdir}
+	fi
+	if [ ! -d "${logdir}" ]; then
+		/usr/bin/install -o ${tvheadend_user} -g ${tvheadend_user} -m 755 -d ${logdir}
 	fi
 }
 
