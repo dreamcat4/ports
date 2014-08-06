@@ -2,7 +2,7 @@
 # $FreeBSD$
 
 PORTNAME=	tvheadend
-PORTVERSION=	3.9.20140801
+PORTVERSION=	3.9.20140805
 CATEGORIES=	multimedia
 
 MAINTAINER=	decke@FreeBSD.org
@@ -10,19 +10,26 @@ COMMENT=	TV streaming server supporting DVB, IPTV and V4L
 
 LICENSE=	GPLv3
 
+TVH_TESTING=	43253f8
+TVH_MASTER=	e99a563
+
+DC4_LIBAV=	3380ef4
+GH_ACCOUNT=	dreamcat4
+
 USE_GITHUB=	yes
-GH_ACCOUNT=	${PORTNAME}
-#GH_ACCOUNT=	dreamcat4
+#GH_ACCOUNT=	${PORTNAME}
 GH_PROJECT=	${PORTNAME}
 GH_TAGNAME=	${GH_COMMIT}
-GH_COMMIT=	47bb0ef
-#GH_COMMIT=	c168cb3
+
+#GH_COMMIT=	${TVH_TESTING}
+GH_COMMIT=	${DC4_LIBAV}
 
 BUILD_DEPENDS=	bash:${PORTSDIR}/shells/bash \
 		${LOCALBASE}/include/linux/videodev2.h:${PORTSDIR}/multimedia/v4l_compat
 
 LIB_DEPENDS=	libexecinfo.so:${PORTSDIR}/devel/libexecinfo \
-		libcurl.so:${PORTSDIR}/ftp/curl
+		libcurl.so:${PORTSDIR}/ftp/curl \
+		liburiparser.so:${PORTSDIR}/net/uriparser
 
 RUN_DEPENDS=	dtv-scan-tables>=0:${PORTSDIR}/multimedia/dtv-scan-tables
 
@@ -36,11 +43,11 @@ USERS=		tvheadend
 GROUPS=		tvheadend webcamd
 
 CONFIGURE_ENV+=	PLATFORM=freebsd
-CONFIGURE_ARGS+=--disable-dvbscan --disable-zlib --disable-libav
+CONFIGURE_ARGS+=--disable-dvbscan --disable-zlib
 CFLAGS+=	-I${LOCALBASE}/include -Wno-conversion -Wno-int-to-pointer-cast
 LDFLAGS+=	-L${LOCALBASE}/lib -lexecinfo -lssl -lz
 
-OPTIONS_DEFINE=	DVBCSA AVAHI XMLTV
+OPTIONS_DEFINE=	DVBCSA AVAHI FFMPEG XMLTV
 OPTIONS_DEFAULT=DVBCSA
 
 DVBCSA_DESC=		Replace internal ffdecsa with dvbcsa
@@ -48,6 +55,9 @@ DVBCSA_LIB_DEPENDS=	libdvbcsa.so:${PORTSDIR}/multimedia/libdvbcsa
 DVBCSA_CONFIGURE_ENABLE=dvbcsa
 
 AVAHI_LIB_DEPENDS=	libavahi-client.so:${PORTSDIR}/net/avahi-app
+
+FFMPEG_LIB_DEPENDS=	libavcodec.so:${PORTSDIR}/multimedia/ffmpeg
+FFMPEG_CONFIGURE_ENABLE=libav
 
 XMLTV_RUN_DEPENDS=	p5-xmltv>=0:${PORTSDIR}/textproc/p5-xmltv
 
