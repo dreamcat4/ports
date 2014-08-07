@@ -1,5 +1,5 @@
 # Created by: Mario Sergio Fujikawa Ferreira <lioux@FreeBSD.org>
-# $FreeBSD: head/textproc/p5-xmltv/Makefile 360693 2014-07-04 23:51:25Z antoine $
+# $FreeBSD$
 
 PORTNAME=	xmltv
 PORTVERSION=	0.5.65
@@ -9,6 +9,9 @@ PKGNAMEPREFIX=	p5-
 
 MAINTAINER=	multimedia@FreeBSD.org
 COMMENT=	Set of programs to process TV (tvguide) listings in XML format
+
+LICENSE=	GPLv2
+LICENSE_FILE=	${WRKSRC}/COPYING
 
 XMLTV_DEPENDS=	\
 	p5-XML-Parser>=0:${PORTSDIR}/textproc/p5-XML-Parser \
@@ -44,8 +47,7 @@ XMLTV_DEPENDS=	\
 BUILD_DEPENDS=	${XMLTV_DEPENDS}
 RUN_DEPENDS=	${XMLTV_DEPENDS}
 
-USES=		perl5
-USE_BZIP2=	yes
+USES=		perl5 tar:bzip2
 USE_PERL5=	configure
 
 DOCSDIR=	${PREFIX}/share/doc/${PORTNAME}-${PORTVERSION}

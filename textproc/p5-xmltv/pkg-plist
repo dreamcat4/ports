@@ -191,24 +191,24 @@ man/man1/tv_validate_grabber.1.gz
 %%DATADIR%%/xmltv-lineups.xsd
 %%DATADIR%%/xmltv.dtd
 %%CGIDIR%%/tv_pick.cgi
-@dirrmtry %%SITE_PERL%%/XMLTV/Ask
-@dirrmtry %%SITE_PERL%%/XMLTV/Configure
-@dirrmtry %%SITE_PERL%%/XMLTV/Data/Recursive
-@dirrmtry %%SITE_PERL%%/XMLTV/Data
-@dirrmtry %%SITE_PERL%%/XMLTV/ProgressBar
-@dirrmtry %%SITE_PERL%%/XMLTV
-@dirrmtry %%SITE_PERL%%/%%PERL_ARCH%%/auto/XMLTV
-@dirrmtry %%DATADIR%%/tv_grab_eu_epgdata
-@dirrmtry %%DATADIR%%/tv_grab_huro
-@dirrmtry %%DATADIR%%/tv_grab_it
-@dirrmtry %%DATADIR%%/tv_grab_it_dvb
-@dirrmtry %%DATADIR%%/tv_grab_uk_atlas/cgi-bin
-@dirrmtry %%DATADIR%%/tv_grab_uk_atlas
-@dirrmtry %%DATADIR%%/tv_grab_uk_bleb
-@dirrmtry %%DATADIR%%/tv_grab_uk_guardian
-@dirrmtry %%DATADIR%%/tv_grab_uk_rt/lineups
-@dirrmtry %%DATADIR%%/tv_grab_uk_rt
-@dirrmtry %%DATADIR%%/tv_grab_uk_tvguide
-@dirrmtry %%DATADIR%%
+@dirrm %%SITE_PERL%%/XMLTV/Ask
+@dirrm %%SITE_PERL%%/XMLTV/Configure
+@dirrm %%SITE_PERL%%/XMLTV/Data/Recursive
+@dirrm %%SITE_PERL%%/XMLTV/Data
+@dirrm %%SITE_PERL%%/XMLTV/ProgressBar
+@dirrm %%SITE_PERL%%/XMLTV
+@dirrm %%SITE_PERL%%/%%PERL_ARCH%%/auto/XMLTV
+@dirrm %%DATADIR%%/tv_grab_eu_epgdata
+@dirrm %%DATADIR%%/tv_grab_huro
+@dirrm %%DATADIR%%/tv_grab_it
+@dirrm %%DATADIR%%/tv_grab_it_dvb
+@dirrm %%DATADIR%%/tv_grab_uk_atlas/cgi-bin
+@dirrm %%DATADIR%%/tv_grab_uk_atlas
+@dirrm %%DATADIR%%/tv_grab_uk_bleb
+@dirrm %%DATADIR%%/tv_grab_uk_guardian
+@dirrm %%DATADIR%%/tv_grab_uk_rt/lineups
+@dirrm %%DATADIR%%/tv_grab_uk_rt
+@dirrm %%DATADIR%%/tv_grab_uk_tvguide
+@dirrm %%DATADIR%%
 @dirrmtry %%CGIDIR%%
 
