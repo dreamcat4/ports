@@ -13,6 +13,8 @@ COMMENT=	Set of programs to process TV (tvguide) listings in XML format
 LICENSE=	GPLv2
 LICENSE_FILE=	${WRKSRC}/COPYING
 
+# Temp disable dependancy to avoid error in test builds
+# p5-Tk-TableMatrix>=0:${PORTSDIR}/x11-toolkits/p5-Tk-TableMatrix \.
 XMLTV_DEPENDS=	\
 	p5-XML-Parser>=0:${PORTSDIR}/textproc/p5-XML-Parser \
 	p5-XML-Twig>=0:${PORTSDIR}/textproc/p5-XML-Twig \
@@ -26,7 +28,6 @@ XMLTV_DEPENDS=	\
 	p5-Parse-RecDescent>=0:${PORTSDIR}/devel/p5-Parse-RecDescent \
 	p5-HTML-Tree>=0:${PORTSDIR}/www/p5-HTML-Tree \
 	p5-HTML-Parser>=0:${PORTSDIR}/www/p5-HTML-Parser \
-	p5-Tk-TableMatrix>=0:${PORTSDIR}/x11-toolkits/p5-Tk-TableMatrix \
 	ja-p5-Text-Kakasi>=0:${PORTSDIR}/japanese/p5-Text-Kakasi \
 	p5-XML-LibXML>=0:${PORTSDIR}/textproc/p5-XML-LibXML \
 	p5-SOAP-Lite>=0:${PORTSDIR}/net/p5-SOAP-Lite \
